@@ -6,14 +6,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/lucasbarretoluz/accountmanagment/db/sqlc"
+	"github.com/lucasbarretoluz/accountmanagment/token"
 )
 
 type createTransactionRequest struct {
-	IDUser            int64               `json:"idUser" binding:"required"`
 	TotalValue        int64               `json:"totalValue" binding:"required"`
 	Category          string              `json:"category" binding:"required"`
 	Description       string              `json:"description" binding:"required"`
-	IsExpense         bool                `json:"isExpense" binding:"required"`
+	IsExpense         bool                `json:"isExpense"`
 	TransactionDetail []TransactionDetail `json:"transactionDetail" binding:"required"`
 }
 
@@ -36,8 +36,10 @@ func (server *Server) createTransaction(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	arg := db.CreateTransactionParams{
-		IDUser:      req.IDUser,
+		IDUser:      authPayload.UserID,
 		TotalValue:  req.TotalValue,
 		Category:    req.Category,
 		Description: req.Description,
@@ -72,4 +74,56 @@ func (server *Server) createTransaction(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "Transação criada com sucesso"})
+}
+
+type getTransactionsRequest struct {
+	PageID   int32 `form:"pageId" binding:"required,min=1"`
+	PageSize int32 `form:"pageSize" binding:"required,min=5,max=10"`
+}
+
+func (server *Server) getTransactions(ctx *gin.Context) {
+	var req getTransactionsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	offset := (req.PageID - 1) * req.PageSize
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	arg := db.GetListTransactionsParams{
+		IDUser: authPayload.UserID,
+		Limit:  req.PageSize,
+		Offset: offset,
+	}
+
+	transactions, err := server.store.GetListTransactions(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, transactions)
+}
+
+type getTransactionRequest struct {
+	IDTransaction int64 `uri:"idTransaction" binding:"required,min=1"`
+	WithDetail    bool  `uri:"withDetail" binding:"required"`
+}
+
+func (server *Server) getTransaction(ctx *gin.Context) {
+	var req getTransactionRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	transaction, err := server.store.GetTransaction(ctx, req.IDTransaction)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, transaction)
 }

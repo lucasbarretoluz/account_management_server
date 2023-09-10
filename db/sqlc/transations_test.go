@@ -66,12 +66,12 @@ func TestListTransactions(t *testing.T) {
 		createRandomTransaction(t)
 	}
 
-	arg := ListTransactionsParams{
+	arg := GetListTransactionsParams{
 		Limit:  5,
 		Offset: 5,
 	}
 
-	transactions, err := testQueries.ListTransactions(context.Background(), arg)
+	transactions, err := testQueries.GetListTransactions(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, transactions, 5)
 

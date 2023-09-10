@@ -26,6 +26,20 @@ CREATE TABLE "transaction_detail" (
   "transaction_detail_at" timestamp NOT NULL DEFAULT (now())
 );
 
+CREATE TABLE "sessions" (
+  "id" uuid PRIMARY KEY,
+  "id_user" bigserial NOT NULL,
+  "user_name" varchar NOT NULL,
+  "refresh_token" varchar NOT NULL,
+  "user_agent" varchar NOT NULL,
+  "client_ip" varchar NOT NULL,
+  "is_blocked" boolean NOT NULL DEFAULT false,
+  "expires_at" timestamptz NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT (now())
+);
+
 ALTER TABLE "transactions" ADD FOREIGN KEY ("id_user") REFERENCES "users" ("id_user");
 
 ALTER TABLE "transaction_detail" ADD FOREIGN KEY ("id_transaction") REFERENCES "transactions" ("id_transaction");
+
+ALTER TABLE "sessions" ADD FOREIGN KEY ("id_user") REFERENCES "users" ("id_user");

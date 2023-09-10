@@ -98,40 +98,22 @@ func (q *Queries) DeleteTransaction(ctx context.Context, idTransaction int64) er
 	return err
 }
 
-const getTransaction = `-- name: GetTransaction :one
+const getListTransactions = `-- name: GetListTransactions :many
 SELECT id_transaction, id_user, transactions_at, total_value, category, description, is_expense FROM transactions
-WHERE id_transaction = $1 LIMIT 1
+WHERE id_user = $1
+ORDER BY transactions_at DESC
+LIMIT $2
+OFFSET $3
 `
 
-func (q *Queries) GetTransaction(ctx context.Context, idTransaction int64) (Transaction, error) {
-	row := q.db.QueryRowContext(ctx, getTransaction, idTransaction)
-	var i Transaction
-	err := row.Scan(
-		&i.IDTransaction,
-		&i.IDUser,
-		&i.TransactionsAt,
-		&i.TotalValue,
-		&i.Category,
-		&i.Description,
-		&i.IsExpense,
-	)
-	return i, err
-}
-
-const listTransactions = `-- name: ListTransactions :many
-SELECT id_transaction, id_user, transactions_at, total_value, category, description, is_expense FROM transactions
-ORDER BY id_transaction
-LIMIT $1
-OFFSET $2
-`
-
-type ListTransactionsParams struct {
+type GetListTransactionsParams struct {
+	IDUser int64 `json:"id_user"`
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]Transaction, error) {
-	rows, err := q.db.QueryContext(ctx, listTransactions, arg.Limit, arg.Offset)
+func (q *Queries) GetListTransactions(ctx context.Context, arg GetListTransactionsParams) ([]Transaction, error) {
+	rows, err := q.db.QueryContext(ctx, getListTransactions, arg.IDUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +141,26 @@ func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsPara
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTransaction = `-- name: GetTransaction :one
+SELECT id_transaction, id_user, transactions_at, total_value, category, description, is_expense FROM transactions
+WHERE id_transaction = $1 LIMIT 1
+`
+
+func (q *Queries) GetTransaction(ctx context.Context, idTransaction int64) (Transaction, error) {
+	row := q.db.QueryRowContext(ctx, getTransaction, idTransaction)
+	var i Transaction
+	err := row.Scan(
+		&i.IDTransaction,
+		&i.IDUser,
+		&i.TransactionsAt,
+		&i.TotalValue,
+		&i.Category,
+		&i.Description,
+		&i.IsExpense,
+	)
+	return i, err
 }
 
 const updateTransaction = `-- name: UpdateTransaction :one

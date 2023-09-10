@@ -23,11 +23,12 @@ INSERT INTO transaction_detail (
 SELECT * FROM transactions
 WHERE id_transaction = $1 LIMIT 1;
 
--- name: ListTransactions :many
+-- name: GetListTransactions :many
 SELECT * FROM transactions
-ORDER BY id_transaction
-LIMIT $1
-OFFSET $2;
+WHERE id_user = $1
+ORDER BY transactions_at DESC
+LIMIT $2
+OFFSET $3;
 
 -- name: UpdateTransaction :one
 UPDATE transactions
